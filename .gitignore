@@ -23,3 +23,17 @@ pnpm-debug.log*
 
 # typescript
 *.tsbuildinfo
+
+# tooling / framework
+.vercel
+.turbo
+
+# IDEs / editors
+.vscode
+.idea
+
+# debugging / coverage
+coverage
+*.log
+.eslintcache
+
