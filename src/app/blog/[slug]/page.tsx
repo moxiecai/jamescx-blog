@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostBySlug, getPostImageUrl } from "@/lib/posts";
+import { remark } from "remark";
+import html from "remark-html";
 
 type BlogPostPageProps = {
   params: Promise<{ slug: string }>;
@@ -40,6 +42,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
+  const contentHtml = String(await remark().use(html).process(post.content));
+
   return (
     <>
       <Link
@@ -66,7 +70,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </h1>
           <p className="mt-4 text-slate-600">{post.description}</p>
           <div className="prose prose-slate mt-10 max-w-none text-slate-700 prose-p:leading-relaxed prose-p:first:mt-0">
-            <p>{post.content}</p>
+            <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
           </div>
         </div>
       </article>

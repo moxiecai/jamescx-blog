@@ -13,31 +13,56 @@ export function getPostImageUrl(post: Post, width = 800, height = 600): string {
   return `https://picsum.photos/seed/${post.slug}/${width}/${height}`;
 }
 
-export const posts: Post[] = [
-  {
-    slug: "welcome-to-my-blog",
-    title: "Welcome to My Blog",
-    description: "A quick intro to this new Next.js blog.",
-    publishedAt: "2026-03-19",
-    content:
-      "This is the first post on my new blog. Next steps are adding markdown support, tags, and a proper CMS.",
-    image: "https://picsum.photos/seed/welcome-blog/800/600"
-  },
-  {
-    slug: "building-with-nextjs",
-    title: "Building with Next.js",
-    description: "Why I picked Next.js for this site.",
-    publishedAt: "2026-03-18",
-    content:
-      "Next.js provides a great developer experience with App Router, server components, and easy deployment options.",
-    image: "https://picsum.photos/seed/nextjs-build/800/600"
-  }
-];
+import fs from "node:fs";
+import path from "node:path";
+import matter from "gray-matter";
+
+type PostFrontmatter = {
+  title: string;
+  description: string;
+  publishedAt: string;
+  image?: string;
+};
+
+const POSTS_DIR = path.join(process.cwd(), "content", "posts");
+
+function readPostFromFile(filename: string): Post | null {
+  if (!filename.endsWith(".md") && !filename.endsWith(".mdx")) return null;
+
+  const slug = filename.replace(/\.(md|mdx)$/, "");
+  const fullPath = path.join(POSTS_DIR, filename);
+  const file = fs.readFileSync(fullPath, "utf8");
+  const parsed = matter(file);
+
+  const data = parsed.data as Partial<PostFrontmatter>;
+  if (!data.title || !data.description || !data.publishedAt) return null;
+
+  return {
+    slug,
+    title: data.title,
+    description: data.description,
+    publishedAt: data.publishedAt,
+    image: data.image,
+    content: parsed.content.trim()
+  };
+}
 
 export function getAllPosts(): Post[] {
-  return [...posts].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  const files = fs.existsSync(POSTS_DIR) ? fs.readdirSync(POSTS_DIR) : [];
+  const posts = files.map(readPostFromFile).filter(Boolean) as Post[];
+  return posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
 export function getPostBySlug(slug: string): Post | undefined {
-  return posts.find((post) => post.slug === slug);
+  const mdPath = path.join(POSTS_DIR, `${slug}.md`);
+  const mdxPath = path.join(POSTS_DIR, `${slug}.mdx`);
+
+  const filename = fs.existsSync(mdPath)
+    ? `${slug}.md`
+    : fs.existsSync(mdxPath)
+      ? `${slug}.mdx`
+      : null;
+
+  if (!filename) return undefined;
+  return readPostFromFile(filename) ?? undefined;
 }
